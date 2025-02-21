@@ -13,6 +13,7 @@ setup(
             'aa_view=aa_tools.aa_view:main',
             'aa_scroll=aa_tools.aa_scroll:main',
             'aa_create=aa_tools.aa_create:main',
+            'aa_edit=aa_tools.aa_edit:main',
         ],
     },
     include_package_data=True,
