@@ -14,6 +14,8 @@ setup(
             'aa_scroll=aa_tools.aa_scroll:main',
             'aa_create=aa_tools.aa_create:main',
             'aa_edit=aa_tools.aa_edit:main',
+            'aa_ticket=aa_tools.aa_ticket:main',
+            'aa_test=aa_tools.aa_test:main',
         ],
     },
     include_package_data=True,
