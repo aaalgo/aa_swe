@@ -10,6 +10,7 @@ def main():
     begin, end = parse_range(range_, 20)
 
     with aa_context() as aa:
+        sys.stdout.write('\n')
         aa.view(begin, end)
 
 if __name__ == "__main__":

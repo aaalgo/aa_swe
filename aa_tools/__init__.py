@@ -46,6 +46,7 @@ class Context:
             return
         self.path = path
         self.lines = []
+        self.last_displayed_lines = None
         with open(path, "r") as f:
             self.lines = f.readlines()
 
@@ -91,6 +92,10 @@ class Context:
         printed_lines = 0
         last = None
         for i in lines:
+            if i < 0:
+                continue
+            if i >= len(self.lines):
+                continue
             if max_lines is not None and printed_lines >= max_lines:
                 break
             if last is not None and last + 1 < i:
@@ -109,6 +114,7 @@ class Context:
     def view (self, begin, end):
         end = min(end, len(self.lines))
         self.display_lines(list(range(begin, end)), max_lines=None)
+        sys.stdout.write('\n')
 
     def search (self, pattern, radius=2, max_lines=25):
         if not self.lines:
@@ -137,6 +143,7 @@ class Context:
                 starred.add(i)
         lines.sort()
         printed_hits = self.display_lines(lines, starred, max_lines)   
+        sys.stdout.write('\n')
         if printed_hits < hits:
             sys.stdout.write(f'Found {hits} matches, first {printed_hits} displayed.\n')
         sys.stdout.write('Use aa_view to display more lines surrounding a hit.\n')

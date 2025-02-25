@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-
 import os
 import sys
 import json
-import requests
-import argparse
 
 
 def main():
-    current_directory = os.getcwd()
-    parent_dir, cur_dir = os.path.split(current_directory)
-    print(parent_diri, cur_dir)
+    if not os.path.exists(".swe"):
+        sys.stderr.write("This is not a testbed directory.\n")
+        sys.exit(1)
+    with open(os.path.join(".swe", "instance.json"), "r") as f:
+        instance = json.load(f)
+    print(instance["problem_statement"])
+
+if __name__ == "__main__":
+    main()
