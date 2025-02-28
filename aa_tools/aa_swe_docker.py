@@ -7,6 +7,8 @@ import subprocess
 import logging
 from . import *
 
+DEFAULT_TAG=os.environ.get("AA_SWE_TAG", "aa")
+
 def docker_run (command, tag, *kargs, **kwargs):
     if os.getenv('SWE_DEBUG'):
         logging.basicConfig(level=logging.DEBUG)
@@ -122,7 +124,7 @@ def print_error_details (traceback_lines, radius_before = 20, radius_after = 2):
         sys.stdout.write("\n!!! Important: you are not allowed to modify the test cases.\n")
 
 
-def test_main (tag='aa'):
+def test_main (tag=DEFAULT_TAG):
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     stdout_path = os.path.join("..", "stdout." + timestamp)
     stderr_path = os.path.join("..", "stderr." + timestamp)
@@ -135,7 +137,7 @@ def test_main (tag='aa'):
 
     if True:    # run the test
         eval_out = os.path.join("..", "eval_out." + timestamp)
-        command = ["timeout", "120", "/eval.sh"]
+        command = ["timeout", "300", "/eval.sh"]
         result = docker_run(command, tag, capture_output=True, text=True)
         with open(stdout_path, "w") as f:
             f.write(result.stdout)

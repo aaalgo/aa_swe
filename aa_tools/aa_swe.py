@@ -63,6 +63,14 @@ class Env:
             f.write(self.spec.eval_script)
         os.system(f"chmod +x {eval_path}")
 
+def download_main ():
+    for split in ['dev', 'test']:
+        swebench = load_dataset('princeton-nlp/SWE-bench_Lite', split=split)
+        for instance in swebench:
+            env = Env(instance, split=split)
+            env.download_repo()
+
+
 def checkout_main ():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--split', type=str, default=None, help='The split to use (e.g., dev or test)')

@@ -22,6 +22,8 @@ setup(
             'swe_reveal=aa_tools.swe_reveal:main',
             'swe_run=aa_tools.aa_swe_docker:run_main',
             'swe_solve=aa_tools.aa_swe:solve_main',
+            'swe_dump=aa_tools.swe_dump:main',
+            'swe_download=aa_tools.aa_swe:download_main',
         ],
     },
     include_package_data=True,
