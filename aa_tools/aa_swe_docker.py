@@ -13,8 +13,10 @@ def docker_run (command, tag, *kargs, **kwargs):
     # swe_run ...
     # will run the ... part in docker
     cwd = os.path.abspath(os.getcwd())
-    with open(os.path.join(cwd, ".swe", "instance.json"), "r") as f:
+    with open(os.path.join(cwd, "..", "instance.json"), "r") as f:
         instance = json.load(f)
+    eval_sh = os.path.abspath(os.path.join(cwd, "..", "eval.sh"))
+    assert os.path.exists(eval_sh), f"eval.sh not found at {eval_sh}"
     docker_image = "sweb.eval.x86_64." + instance["instance_id"] + ":" + tag
     docker_instance = tag + "." + instance["instance_id"]
     # Check if the Docker instance exists
@@ -38,7 +40,7 @@ def docker_run (command, tag, *kargs, **kwargs):
     # Create the Docker instance if it doesn't exist or was removed
     if not existing_instance or f"{cwd}:/testbed" not in bindings:
         logging.info(f"Creating new instance {docker_instance}")
-        subprocess.run(["docker", "run", "-d", "--name", docker_instance, "-v", f"{cwd}:/testbed", docker_image, "sleep", "infinity"])
+        subprocess.run(["docker", "run", "-d", "--name", docker_instance, "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", docker_image, "sleep", "infinity"])
     # Run the command inside the Docker container
     return subprocess.run(["docker", "exec", docker_instance] + command, *kargs, **kwargs)
 
@@ -69,6 +71,7 @@ def print_error_details (traceback_lines, radius_before = 20, radius_after = 2):
     sys.stdout.write("First Exception Traceback:\n")
     for line in traceback_lines:
         sys.stdout.write(line + "\n")
+    return
     sys.stdout.write("\nI have opened the errornous file for you:\n\n")
     error_path = None
     error_line = None
@@ -121,16 +124,18 @@ def print_error_details (traceback_lines, radius_before = 20, radius_after = 2):
 
 def test_main (tag='aa'):
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    stdout_path = os.path.join(".swe", "stdout." + timestamp)
-    stderr_path = os.path.join(".swe", "stderr." + timestamp)
-    patch_path = os.path.join(".swe", "patch." + timestamp)
-    patch_link = os.path.join(".swe", "patch")
+    stdout_path = os.path.join("..", "stdout." + timestamp)
+    stderr_path = os.path.join("..", "stderr." + timestamp)
+    patch_fname = "patch." + timestamp
+    patch_path = os.path.join("..", patch_fname)
+    patch_link = os.path.join("..", "patch")
+    fail_path = os.path.join("..", "failed")
     if os.path.exists(patch_link):
         os.remove(patch_link)
 
     if True:    # run the test
-        eval_out = os.path.join(".swe", "eval_out." + timestamp)
-        command = ["bash", "/testbed/.swe/eval.sh"]
+        eval_out = os.path.join("..", "eval_out." + timestamp)
+        command = ["timeout", "120", "/eval.sh"]
         result = docker_run(command, tag, capture_output=True, text=True)
         with open(stdout_path, "w") as f:
             f.write(result.stdout)
@@ -140,10 +145,16 @@ def test_main (tag='aa'):
     error_lines = extract_first_exception(stderr_path)
     if len(error_lines) == 0:
         subprocess.run(f"git diff > {patch_path}", shell=True)
-        os.symlink('patch.' + timestamp, patch_link)
+        os.symlink(patch_fname, patch_link)
         print("Congratulations! You have passed the test.")
     else:
         print_error_details(error_lines)
+        with aa_context() as aa:
+            aa.trials += 1
+            if aa.trials >= aa.max_trials:
+                with open(fail_path, "w") as f:
+                    f.write('failed test')
+                    pass
     
 
 

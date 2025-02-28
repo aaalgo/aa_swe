@@ -19,6 +19,7 @@ setup(
             'aa_test=aa_tools.aa_swe_docker:test_main',
             'swe_checkout=aa_tools.aa_swe:checkout_main',
             'swe_list=aa_tools.aa_swe:list_main',
+            'swe_reveal=aa_tools.swe_reveal:main',
             'swe_run=aa_tools.aa_swe_docker:run_main',
             'swe_solve=aa_tools.aa_swe:solve_main',
         ],

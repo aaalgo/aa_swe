@@ -28,12 +28,16 @@ class Context:
                 state = json.load(f)
                 self.set_path(state['path'])
                 self.last_displayed_lines = state.get('last_displayed_lines', None)
+                self.trials = state.get('trials', 0)
+                self.max_trials = state.get('max_trials', 5)
 
     def save (self, state_path):
         with open(state_path, 'w') as f:
             json.dump({
                 'path': self.path,
-                'last_displayed_lines': self.displayed_lines
+                'last_displayed_lines': self.displayed_lines,
+                'trials': self.trials,
+                'max_trials': self.max_trials
             }, f)
 
     def set_path (self, path):
@@ -62,6 +66,43 @@ class Context:
             sys.stdout.write(f"no file loaded\n")
 
     def summary (self):
+        if not self.path.endswith('.py'):
+            return
+        defs = [] # i, offset
+        min_off = 1000000
+        for i, line in enumerate(self.lines):
+            off = line.find('def ')
+            if off < 0:
+                continue
+            if line[:off].strip() != "":
+                continue
+            defs.append((i, off))
+            min_off = min(min_off, off)
+        lines = []
+        stars = set()
+        for i, off in defs:
+            if off > min_off:
+                continue
+            lines.append(i)
+            stars.add(i)
+            line = self.lines[i]
+            if '(' in line:
+                i0 = i
+                while not ')' in line and i < i0 + 2:
+                    i += 1
+                    if i >= len(self.lines):
+                        break
+                    lines.append(i)
+                    line += self.lines[i]
+        if len(lines) > 0:
+            if len(stars) > 20:
+                sys.stdout.write(f"Too many def lines, not displaying.\n")
+                return
+            sys.stdout.write(f"def lines:\n\n")
+            hits = self.display_lines(lines, stars, max_lines=100)
+            sys.stdout.write('\n')
+            if hits is not None and hits < len(stars):
+                sys.stdout.write(f'{len(stars) - hits} more def not displayed.')
         pass
 
     def print_window (self, line = None, window=10, suffix=True, star=None):
@@ -144,7 +185,7 @@ class Context:
         lines.sort()
         printed_hits = self.display_lines(lines, starred, max_lines)   
         sys.stdout.write('\n')
-        if printed_hits < hits:
+        if printed_hits is not None and printed_hits < hits:
             sys.stdout.write(f'Found {hits} matches, first {printed_hits} displayed.\n')
         sys.stdout.write('Use aa_view to display more lines surrounding a hit.\n')
 
