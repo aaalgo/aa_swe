@@ -1,9 +1,12 @@
 # AA_TOOLS
 
-The tools for solving the [SWE-bench](https://www.swebench.com/) with Mailcoach.
+Wei Dong
+wdong@aaalgo.com
 
-You'll need a solver (the prompt) to run this package.  The solver is currently
-not open to the general public.  Contact the author for collaboration.
+The tools for solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach](https://github.com/aaalgo/mailcoach_lite).
+
+**You'll need a solver (the prompt) to run this package.  The solver is currently
+not open to the general public.  Contact the author for collaboration.**
 
 # Setup Environment
 
