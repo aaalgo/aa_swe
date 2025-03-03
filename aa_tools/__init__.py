@@ -23,6 +23,8 @@ class Context:
         self.lines = []
         self.displayed_lines = None
         self.last_displayed_lines = None
+        self.old_selection = None
+        self.selection = None
         if os.path.exists(state_path):
             with open(state_path, 'r') as f:
                 state = json.load(f)
@@ -30,6 +32,7 @@ class Context:
                 self.last_displayed_lines = state.get('last_displayed_lines', None)
                 self.trials = state.get('trials', 0)
                 self.max_trials = state.get('max_trials', 5)
+                self.old_selection = state.get('selection', None)
 
     def save (self, state_path):
         with open(state_path, 'w') as f:
@@ -37,7 +40,8 @@ class Context:
                 'path': self.path,
                 'last_displayed_lines': self.displayed_lines,
                 'trials': self.trials,
-                'max_trials': self.max_trials
+                'max_trials': self.max_trials,
+                'selection': self.selection
             }, f)
 
     def set_path (self, path):
@@ -62,6 +66,8 @@ class Context:
                 sys.stdout.write(f"cannot scroll\n")
             else:
                 sys.stdout.write(f"can scroll\n")
+            if self.selection is not None:
+                sys.stdout.write(f"selection: {self.selection[0]+1}-{self.selection[1]}\n")
         else:
             sys.stdout.write(f"no file loaded\n")
 

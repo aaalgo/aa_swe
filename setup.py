@@ -14,6 +14,8 @@ setup(
             'aa_scroll=aa_tools.aa_scroll:main',
             'aa_create=aa_tools.aa_create:main',
             'aa_edit=aa_tools.aa_edit:main',
+            'aa_select=aa_tools.aa_edit:select_main',
+            'aa_replace=aa_tools.aa_edit:replace_main',
             'aa_ticket=aa_tools.aa_ticket:main',
             'aa_tree=aa_tools.aa_tree:main',
             'aa_test=aa_tools.aa_swe_docker:test_main',

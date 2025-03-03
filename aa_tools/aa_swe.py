@@ -92,11 +92,13 @@ def checkout_main ():
 def list_main ():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--split', type=str, default='dev', help='The split to use (e.g., dev or test)')
+    parser.add_argument('--all', action='store_true', help='Show the todo instances')
     args = parser.parse_args()
     #FIELDS = ['instance_id', 'repo', 'version', 'install_repo_script', 'eval_script', 'setup_env_script', 'arch', 'base_image_key', 'env_dockerfile']
     seen = set()
     solved = 0
     failed = 0
+    todo = 0
     for path in glob(os.path.join(ROOT, "insts", "*", "*", "patch")):
         _, split, instance_id, _ = path.rsplit(os.sep, 3)
         print("\033[92mSOLVED\033[0m", split, instance_id)
@@ -126,7 +128,16 @@ def list_main ():
             else:
                 has_trace = ""
             print("\033[93mUNSOLVED\033[0m", split, instance_id, has_trace)
+            seen.add((split, instance_id))
             failed += 1
+    if args.all:
+        for split in ['dev', 'test']:
+            swebench = load_dataset('princeton-nlp/SWE-bench_Lite', split=split)
+            for instance in swebench:
+                instance_id = instance['instance_id']
+                if (split, instance_id) not in seen:
+                    print("TODO", split, instance_id)
+                    todo += 1
     print(f"Solved: {solved}, Failed: {failed}")
 
 def solve_main ():

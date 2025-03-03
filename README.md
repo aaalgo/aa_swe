@@ -8,6 +8,29 @@ The tools for solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach
 **You'll need a solver (the prompt) to run this package.  The solver is currently
 not open to the general public.  Contact the author for collaboration.**
 
+# Overview of Data Layout
+
+All data will be contained in a root working directory selected by the user.  The root working directory is specified by the environment variable `AA_SWE_ROOT`.
+
+```
+AA_SWE_ROOT
+├── repos
+│   ├── django/django
+│   ├── astropy/astropy
+|   ... th
+|   
+│   │   ├── sympy__sympy-22005
+│   │   │   ├── repo
+│   │   │   │   ├── ...
+│   │   │   │   └── ...
+│   │   │   └── ...
+│   │   └── ...
+│   └── test
+│       ├── ...
+│       └── ...
+```
+
+
 # Setup Environment
 
 ## Install Packages
@@ -54,6 +77,12 @@ export AA_SWE_ROOT=/path/to/your/root/working/directory
 export AA_SWE_DATA_TAG=the_tag_you_used_in_the_docker_build_command
 ```
 
+## Download the Github Repositories
+
+```
+swe_download
+```
+
 ## Start Solving
 
 ```
@@ -69,10 +98,5 @@ The following arguments are available:
 - `-d,--debug`: step mode, will ask for confirmation before each step.
 - `-f,--force`: for the solve to run over existing data.
 - `--max_trials`: maximal number of test failures before giving up.
-
-
-
-
-
 
 
