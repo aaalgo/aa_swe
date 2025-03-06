@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import os
+import sys
 from . import aa_context
 import argparse
 
@@ -8,6 +10,9 @@ def main():
     args = parser.parse_args()
 
     with aa_context() as aa:
+        if not os.path.isfile(args.path):
+            sys.stderr.write(f"Error: {args.path} is not a valid file or does not exist.\n")
+            return
         aa.set_path(args.path)
         aa.summary()
 

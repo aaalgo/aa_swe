@@ -5,6 +5,9 @@ setup(
     version='0.1',
     packages=find_packages(),
     scripts=['aa_tools/aa_open.py'],
+    package_data={
+        'aa_tools': ['data/survey.csv'], 
+    },    
     entry_points={
         'console_scripts': [
             'aa_open=aa_tools.aa_open:main',
@@ -15,7 +18,7 @@ setup(
             'aa_create=aa_tools.aa_create:main',
             'aa_edit=aa_tools.aa_edit:main',
             'aa_select=aa_tools.aa_edit:select_main',
-            'aa_replace=aa_tools.aa_edit:replace_main',
+            'aa_rewrite=aa_tools.aa_edit:rewrite_main',
             'aa_ticket=aa_tools.aa_ticket:main',
             'aa_tree=aa_tools.aa_tree:main',
             'aa_test=aa_tools.aa_swe_docker:test_main',
@@ -26,6 +29,10 @@ setup(
             'swe_solve=aa_tools.aa_swe:solve_main',
             'swe_dump=aa_tools.swe_dump:main',
             'swe_download=aa_tools.aa_swe:download_main',
+            'swe_submit=aa_tools.swe_submit:main',
+            'swe_analyze=aa_tools.swe_analyze:main',
+            'swe_eval=aa_tools.swe_eval:main',
+            'swe_cheat=aa_tools.aa_swe:cheat_main',
         ],
     },
     include_package_data=True,

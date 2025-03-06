@@ -9,7 +9,7 @@ from . import *
 
 DEFAULT_TAG=os.environ.get("AA_SWE_TAG", "aa")
 
-def docker_run (command, tag, *kargs, **kwargs):
+def docker_run (command, tag):
     if os.getenv('SWE_DEBUG'):
         logging.basicConfig(level=logging.DEBUG)
     # swe_run ...
@@ -44,7 +44,11 @@ def docker_run (command, tag, *kargs, **kwargs):
         logging.info(f"Creating new instance {docker_instance}")
         subprocess.run(["docker", "run", "-d", "--name", docker_instance, "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", docker_image, "sleep", "infinity"])
     # Run the command inside the Docker container
-    return subprocess.run(["docker", "exec", docker_instance] + command, *kargs, **kwargs)
+    command = ["docker", "exec", docker_instance] + command
+    command_str = " ".join(command) + " 2>&1"
+    logging.info(f"Running command: {command_str}")
+    result = subprocess.run(command_str, shell=True, capture_output=True, text=True)
+    return result
 
 def run_main(tag="aa"):
     command = sys.argv[1:]
@@ -52,22 +56,19 @@ def run_main(tag="aa"):
 
 
 def extract_first_exception(stderr_file):
-    exception_pattern = re.compile(r'^(Traceback \(most recent call last\):|.*Error:|.*Exception:)')
-    traceback_lines = []
-    capturing = False
-
     with open(stderr_file, 'r') as file:
-        for line in file:
-            if capturing:
-                traceback_lines.append(line.rstrip())
-                if re.search(r'(Error|Exception):', line):
-                    # Stop after capturing the error/exception line
+        lines = file.readlines()
+    for i in range(len(lines)):
+        if lines[i].startswith("===========") and (i+1 < len(lines)):
+            if not lines[i+1].startswith("ERROR:"):
+                continue
+            traceback_lines = [lines[i+1]]
+            for j in range(i+3, len(lines)):
+                if lines[j].startswith("----------------"):
                     break
-            elif exception_pattern.match(line):
-                capturing = True
-                traceback_lines.append(line.rstrip())
-
-    return traceback_lines
+                traceback_lines.append(lines[j])
+            return traceback_lines
+    return []
 
 def print_error_details (traceback_lines, radius_before = 20, radius_after = 2):
     sys.stdout.write("First Exception Traceback:\n")
@@ -126,8 +127,8 @@ def print_error_details (traceback_lines, radius_before = 20, radius_after = 2):
 
 def test_main (tag=DEFAULT_TAG):
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    stdout_path = os.path.join("..", "stdout." + timestamp)
-    stderr_path = os.path.join("..", "stderr." + timestamp)
+    output_fname = "stdout." + timestamp
+    stdout_path = os.path.join("..", output_fname)
     patch_fname = "patch." + timestamp
     patch_path = os.path.join("..", patch_fname)
     patch_link = os.path.join("..", "patch")
@@ -136,21 +137,19 @@ def test_main (tag=DEFAULT_TAG):
         os.remove(patch_link)
 
     if True:    # run the test
-        eval_out = os.path.join("..", "eval_out." + timestamp)
         command = ["timeout", "300", "/eval.sh"]
-        result = docker_run(command, tag, capture_output=True, text=True)
+        result = docker_run(command, tag)
         with open(stdout_path, "w") as f:
             f.write(result.stdout)
-        with open(stderr_path, "w") as f:
-            f.write(result.stderr)
     
-    error_lines = extract_first_exception(stderr_path)
+    error_lines = extract_first_exception(stdout_path)
+    print("timestamp:", timestamp)
     if len(error_lines) == 0:
-        subprocess.run(f"git diff > {patch_path}", shell=True)
-        os.symlink(patch_fname, patch_link)
-        print("Congratulations! You have passed the test.")
+        if os.system(f"cd .. && swe_eval {output_fname} 2> /dev/null") == 0:
+            subprocess.run(f"git diff > {patch_path}", shell=True)
+            os.symlink(patch_fname, patch_link)
     else:
-        print_error_details(error_lines)
+        print(''.join(error_lines))
         with aa_context() as aa:
             aa.trials += 1
             if aa.trials >= aa.max_trials:
@@ -158,5 +157,3 @@ def test_main (tag=DEFAULT_TAG):
                     f.write('failed test')
                     pass
     
-
-

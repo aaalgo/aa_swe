@@ -66,10 +66,10 @@ def select_main ():
         for i in range(begin, end):
             sys.stdout.write(aa.lines[i])
         sys.stdout.write('--- end of selection ---\n')
-        sys.stdout.write('You can now proceed with aa_replace to replace the selected lines (if the selection is OK).\n')
+        sys.stdout.write('You can now proceed with aa_rewrite to rewrite the selected lines (if the selection is OK).\n')
         aa.selection = [begin, end]
 
-def replace_main ():
+def rewrite_main ():
     with aa_context() as aa:
         if aa.path is None:
             sys.stderr.write('You must open a file before editing it.\n')
@@ -98,7 +98,7 @@ def replace_main ():
             with open(aa.path, "w") as f:
                 f.write(new_content) 
             aa.set_path(aa.path)
-            sys.stdout.write(f"{end-begin} lines replaced, new content:\n")
+            sys.stdout.write(f"{end-begin} lines rewritten, new content:\n")
             lines= []
             stars = set()
             for i in range(max(0, new_begin - 5), new_begin):
@@ -111,8 +111,13 @@ def replace_main ():
             aa.display_lines(lines, stars)
             sys.stdout.write("\nIf you don't like this, you need to revert with git.\n" )
         else:
-            sys.stdout.write(f"Syntax errors found.  Not saving.\n")
-            sys.stdout.write(result)
+            if "```" in ''.join(body):
+                sys.stdout.write("Not not quote your code with ```.  Your email body should contain only the rewritten lines.\n")
+            else:
+                sys.stdout.write(f"Syntax errors found.  Not saving.\n")
+                sys.stdout.write(result)
+                if len(body) > 10:
+                    sys.stdout.write("Try select fewer lines for modification.")
             return
 
 def main():
@@ -145,7 +150,7 @@ def main():
             with open(aa.path, "w") as f:
                 f.write(new_content) 
             aa.set_path(aa.path)
-            sys.stdout.write(f"{end-begin} lines replaced, new content:\n")
+            sys.stdout.write(f"{end-begin} lines rewritten, new content:\n")
             lines= []
             stars = set()
             for i in range(max(0, new_begin - 5), new_begin):

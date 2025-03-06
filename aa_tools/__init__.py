@@ -165,8 +165,14 @@ class Context:
 
     def search (self, pattern, radius=2, max_lines=25):
         if not self.lines:
+            sys.stderr.write(f"No file loaded. Please aa_open a file first.\n")
+            sys.stderr.write(f"In you want to search a directory, use grep instead.\n")
             return
-        regex = re.compile(pattern)
+        try:
+            regex = re.compile(pattern)
+        except Exception as e:
+            sys.stderr.write(f"Error compiling regex: {e}\n")
+            return
         to_print = defaultdict(list)
         hits = 0
         for i, line in enumerate(self.lines):
@@ -193,7 +199,7 @@ class Context:
         sys.stdout.write('\n')
         if printed_hits is not None and printed_hits < hits:
             sys.stdout.write(f'Found {hits} matches, first {printed_hits} displayed.\n')
-        sys.stdout.write('Use aa_view to display more lines surrounding a hit.\n')
+        sys.stdout.write('Use aa_list to display more lines surrounding a hit.\n')
 
 @contextmanager
 def aa_context(state_path=STATE_PATH):

@@ -11,6 +11,15 @@ from tqdm import tqdm
 from datasets import load_dataset
 import argparse
 from swebench.harness.test_spec.test_spec import make_test_spec
+from swebench.harness.grading import get_eval_report, get_logs_eval, get_eval_tests_report, get_resolution_status
+from swebench.harness.constants import (
+    KEY_INSTANCE_ID,
+    FAIL_TO_PASS,
+    PASS_TO_PASS,
+    FAIL_ONLY_REPOS,
+    EvalType,
+    ResolvedStatus,
+)
 from . import aa_context
 
 ROOT=os.environ.get("AA_SWE_ROOT", None)
@@ -63,6 +72,45 @@ class Env:
             f.write(self.spec.eval_script)
         os.system(f"chmod +x {eval_path}")
 
+    def apply_groundtruth (self):
+        with open(os.path.join(self.work_dir, "groundtruth.diff"), "w") as f:
+            f.write(self.instance['patch'])
+        os.system(f"cd {self.work_dir}/testbed && git reset --hard HEAD && git apply ../groundtruth.diff")
+
+    def eval (self, output_path):
+        prediction = {
+            'instance_id': self.spec.instance_id,
+            'model_name_or_path': 'aaa',
+            'model_patch': '',
+        }
+        report = get_eval_report(test_spec=self.spec, prediction=prediction, test_log_path=output_path, include_tests_status=True)
+        eval_status_map, found = get_logs_eval(self.spec, output_path)
+        if not found:
+            return
+        eval_type = EvalType.FAIL_ONLY if self.spec.repo in FAIL_ONLY_REPOS \
+            else EvalType.PASS_AND_FAIL
+        eval_ref = {
+                KEY_INSTANCE_ID: self.spec.instance_id,
+                FAIL_TO_PASS: self.spec.FAIL_TO_PASS,
+                PASS_TO_PASS: self.spec.PASS_TO_PASS,
+            }            
+        report = get_eval_tests_report(
+                eval_status_map, eval_ref, eval_type=eval_type
+            )            
+        if get_resolution_status(report) == ResolvedStatus.FULL.value:
+            print("Congratulations! You have resolved the issue.")
+            sys.exit(0)
+        else:
+            for name, key in [('You failed the following tests:', 'FAIL_TO_PASS'), ('You broke the following tests previously already passed:', 'PASS_TO_PASS')]:
+                failed = report[key]['failure']
+                if len(failed) == 0:
+                    continue
+                print(name)
+                for f in failed:
+                    print(f"\t{f}")
+            sys.exit(1)
+        
+
 def download_main ():
     for split in ['dev', 'test']:
         swebench = load_dataset('princeton-nlp/SWE-bench_Lite', split=split)
@@ -73,8 +121,8 @@ def download_main ():
 
 def checkout_main ():
     parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--split', type=str, default=None, help='The split to use (e.g., dev or test)')
-    parser.add_argument('--instance', type=str, required=True, help='The instance ID to process')
+    parser.add_argument('-s', '--split', type=str, default=None, help='The split to use (e.g., dev or test)')
+    parser.add_argument('-i', '--instance', type=str, required=True, help='The instance ID to process')
 
     args = parser.parse_args()
     splits = ['dev', 'test']
@@ -97,6 +145,7 @@ def list_main ():
     #FIELDS = ['instance_id', 'repo', 'version', 'install_repo_script', 'eval_script', 'setup_env_script', 'arch', 'base_image_key', 'env_dockerfile']
     seen = set()
     solved = 0
+    solved_test = 0
     failed = 0
     todo = 0
     for path in glob(os.path.join(ROOT, "insts", "*", "*", "patch")):
@@ -104,6 +153,8 @@ def list_main ():
         print("\033[92mSOLVED\033[0m", split, instance_id)
         seen.add((split, instance_id))
         solved += 1
+        if split == 'test':
+            solved_test += 1
     for path in glob(os.path.join(ROOT, "insts", "*", "*", "failed")):
         _, split, instance_id, _ = path.rsplit(os.sep, 3)
         with open(path, "r") as f:  
@@ -139,6 +190,17 @@ def list_main ():
                     print("TODO", split, instance_id)
                     todo += 1
     print(f"Solved: {solved}, Failed: {failed}")
+    print(f"Solved test: {solved_test}, {solved_test / 300:.3f}")
+
+def cheat_main ():
+    current_directory = os.getcwd()
+    parts = current_directory.rsplit('/', 2)
+    assert len(parts) == 3, "Current directory structure is not as expected"
+    _, split, instance_id = parts
+    with open("instance.json", "r") as f:
+        instance = json.load(f)
+    env = Env(instance, split)
+    env.apply_groundtruth()
 
 def solve_main ():
     from glob import glob
@@ -154,6 +216,9 @@ def solve_main ():
     parser.add_argument('-f', '--force', action='store_true', help='Force the operation to run even if conditions are not met')
     parser.add_argument('--max_trials', type=int, default=8, help='The maximum number of trials allowed')
     args = parser.parse_args()
+    if not os.path.exists(args.solver):
+        print(f"Solver {args.solver} not found.")
+        return
     split_pattern = args.split if args.split is not None else "*"
     paths = glob(os.path.join(ROOT, "insts", split_pattern, args.instance))
     if len(paths) == 0:
@@ -176,13 +241,15 @@ def solve_main ():
     trace_path = f"{args.instance}.trace.{timestamp}"
     log_path = f"{args.instance}.log.{timestamp}"
     # Set up logging to file
+    logging.root.handlers = []
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
                         handlers=[
-                            logging.FileHandler(log_path, 'w', 'utf-8'),
-                            logging.StreamHandler()
+                            logging.FileHandler(log_path),
+                            logging.StreamHandler(sys.stdout)
                         ])
+    logging.info("Logging setup complete. Log file path: %s", log_path)
 
     engine = Engine(trace_path=trace_path)
     engine.register(Shell("shell@localdomain"))
@@ -211,6 +278,7 @@ def solve_main ():
             return
     os.system("sudo find . -type d -name '__pycache__' -exec rm -rf {} +")
     os.system("git reset --hard HEAD")
+    os.system("aa_close")
 
     def stop_condition (cost):
         if os.path.exists(patch_link):
@@ -233,8 +301,8 @@ def solve_main ():
     message = EmailMessage()
     message["From"] = pm.address
     message["To"] = swe.address
-    message["Subject"] = "New project"
-    message.set_content(f"We are now in a new codebase checked out from https://github.com/{meta['repo']}.  Solve the issue as we did before.  Start by viewing the ticket file ../problem_statement.txt")
+    message["Subject"] = f"New ticket: {meta['instance_id']}"
+    message.set_content(f"We are now in a new codebase checked out from https://github.com/{meta['repo']}.  Solve the issue as we did before.  Start by running aa_ticket to view the problem statement.")
     engine.enqueue(message, ENQUEUE_TASK)
     engine.run(stop_condition=stop_condition, debug=args.debug)
     if not os.path.exists(patch_link):

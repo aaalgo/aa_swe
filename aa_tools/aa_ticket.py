@@ -5,10 +5,10 @@ import json
 
 
 def main():
-    if not os.path.exists(".swe"):
+    if not os.path.exists("../instance.json"):
         sys.stderr.write("This is not a testbed directory.\n")
         sys.exit(1)
-    with open(os.path.join(".swe", "instance.json"), "r") as f:
+    with open(os.path.join("../instance.json"), "r") as f:
         instance = json.load(f)
     print(instance["problem_statement"])
 
