@@ -2,7 +2,7 @@
 import os
 import sys
 import json
-from aa_tools.aa_swe import Env
+from aa_swe.aa_swe import Env
 
 
 def main ():

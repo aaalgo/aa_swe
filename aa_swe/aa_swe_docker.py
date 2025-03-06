@@ -30,7 +30,7 @@ def docker_run (command, tag):
         logging.info(f"Docker instance {docker_instance} already exists, checking volume binding")
         result = subprocess.run(["docker", "inspect", "--format", "{{ range .Mounts }}{{ .Source }}:{{ .Destination }}{{ end }}", docker_instance], capture_output=True, text=True)
         bindings = result.stdout.strip()
-        if f"{cwd}:/testbed" not in bindings:
+        if True or f"{cwd}:/testbed" not in bindings:
             # Kill and remove the instance if the binding is incorrect
             logging.info(f"Binding is incorrect, removing instance {docker_instance}")
             subprocess.run(["docker", "kill", docker_instance])
@@ -40,11 +40,11 @@ def docker_run (command, tag):
             logging.info(f"Binding is correct, reusing instance")
 
     # Create the Docker instance if it doesn't exist or was removed
-    if not existing_instance or f"{cwd}:/testbed" not in bindings:
-        logging.info(f"Creating new instance {docker_instance}")
-        subprocess.run(["docker", "run", "-d", "--name", docker_instance, "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", docker_image, "sleep", "infinity"])
+    #if not existing_instance or f"{cwd}:/testbed" not in bindings:
+    #    logging.info(f"Creating new instance {docker_instance}")
+    #    subprocess.run(["docker", "run", "-d", "--name", docker_instance, "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", docker_image, "sleep", "infinity"])
     # Run the command inside the Docker container
-    command = ["docker", "exec", docker_instance] + command
+    command = ["docker", "run", "--rm", docker_instance] + command
     command_str = " ".join(command) + " 2>&1"
     logging.info(f"Running command: {command_str}")
     result = subprocess.run(command_str, shell=True, capture_output=True, text=True)

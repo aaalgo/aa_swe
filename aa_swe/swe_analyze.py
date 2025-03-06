@@ -4,7 +4,7 @@ from glob import glob
 import pandas as pd
 
 def main():
-    survey_path = pkg_resources.resource_filename('aa_tools', 'data/survey.csv')
+    survey_path = pkg_resources.resource_filename('aa_swe', 'data/survey.csv')
     survey = pd.read_csv(survey_path, dtype={'instance_id': str, 'solved': int})
     survey_dict = survey.set_index('instance_id')['solved'].to_dict()
     failed = []
