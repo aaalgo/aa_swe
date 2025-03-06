@@ -6,7 +6,7 @@ The Ann Arbor Software Engineering Agents
 
 Solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach](https://github.com/aaalgo/mailcoach_lite).
 
-**You'll need a solver (the prompt) to run this package.  The solver is currently
+**You'll need a solver (the agents' memory) to run this package.  The solver is currently
 not open to the general public.  Please contact the authors for collaboration.**
 
 # Overview of Data Layout
