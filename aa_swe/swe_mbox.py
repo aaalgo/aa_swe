@@ -140,7 +140,9 @@ class EmailViewer:
         message = self.emails[index]
         
         # Display headers
-        headers = f"From: {message['from']}\nTo: {message['to']}\nSubject: {message['subject']}\nDate: {message['date']}\n"
+        headers = ""
+        for header, value in message.items():
+            headers += f"{header}: {value}\n"
         self.email_headers.config(state='normal')
         self.email_headers.delete(1.0, tk.END)
         self.email_headers.insert(tk.END, headers)
