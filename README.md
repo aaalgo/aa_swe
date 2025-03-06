@@ -1,13 +1,13 @@
-AA_SWE: The Ann Arbor Software Engineering Agents
-=================================================
+The Ann Arbor Software Engineering Agents
+=========================================
 
 * Wei Dong / Ann Arbor Algorithms / wdong@aaalgo.com
 * Yuanfang Guan / University of Michigan
 
-The tools for solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach](https://github.com/aaalgo/mailcoach_lite).
+Solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach](https://github.com/aaalgo/mailcoach_lite).
 
 **You'll need a solver (the prompt) to run this package.  The solver is currently
-not open to the general public.  Contact the author for collaboration.**
+not open to the general public.  Please contact the authors for collaboration.**
 
 # Overview of Data Layout
 
