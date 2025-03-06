@@ -45,7 +45,7 @@ Use this method to install the following packages:
 
 - https://github.com/SWE-bench/SWE-bench
 - https://github.com/aaalgo/mailcoach_lite
-- https://github.com/aaalgo/aa_tools
+- https://github.com/aaalgo/aa_swe  (This package)
 
 The following commands will be available after installation:
 
