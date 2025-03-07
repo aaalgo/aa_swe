@@ -207,7 +207,7 @@ def solve_main ():
     from mailcoach_lite import Engine, EmailMessage, Agent, ENQUEUE_MEMORY, ENQUEUE_TASK, DEFAULT_MODEL
     from mailcoach_lite.robots import Shell
     parser = argparse.ArgumentParser(description='Process an mbox file.')
-    parser.add_argument('-s', '--solver', default='solver1.mbox', help='Path to solver memory.')
+    parser.add_argument('-s', '--solver', default='solver.mbox', help='Path to solver memory.')
     parser.add_argument('--split', type=str, default=None, help='The split to use (e.g., dev or test)')
     parser.add_argument('-i', '--instance', type=str, required=True, help='The instance ID to process')
     parser.add_argument('-b', '--budget', type=float, default=0.1, help='The budget')

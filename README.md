@@ -1,12 +1,13 @@
-# AA_SWE
+The Ann Arbor Software Engineering Agents
+=========================================
 
-Wei Dong
-wdong@aaalgo.com
+* Wei Dong / Ann Arbor Algorithms / wdong@aaalgo.com
+* Yuanfang Guan / University of Michigan
 
-The tools for solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach](https://github.com/aaalgo/mailcoach_lite).
+Solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach](https://github.com/aaalgo/mailcoach_lite).
 
-**You'll need a solver (the prompt) to run this package.  The solver is currently
-not open to the general public.  Contact the author for collaboration.**
+**You'll need a solver (the agents' memory) to run this package.  The solver is currently
+not open to the general public.  Please contact the authors for collaboration.**
 
 # Overview of Data Layout
 
@@ -14,47 +15,48 @@ All data will be contained in a root working directory selected by the user.  Th
 
 ```
 AA_SWE_ROOT
-├── repos
+├── repos   (The cloned bare git repos)
 │   ├── django/django
 │   ├── astropy/astropy
-|   ... th
+|   ... 
 |   
+├── insts   (The working directories)
+│   ├── test
 │   │   ├── sympy__sympy-22005
-│   │   │   ├── repo
-│   │   │   │   ├── ...
-│   │   │   │   └── ...
+│   │   │   ├── testbed (The task codebase)
+│   │   │   │   ├── instance.json
+│   │   │   │   └── stdout....
 │   │   │   └── ...
 │   │   └── ...
-│   └── test
+│   └── dev
 │       ├── ...
 │       └── ...
 ```
 
-
-# Setup Environment
+# Setup
 
 ## Install Packages
 
 One can install a python package by cloning the git repo, and then running the following command within the top-level directory of the repo:
 
 ```
-pip install -e .
+pip3 install -e .
 ```
 
 Use this method to install the following packages:
 
 - https://github.com/SWE-bench/SWE-bench
 - https://github.com/aaalgo/mailcoach_lite
-- https://github.com/aaalgo/aa_tools
+- https://github.com/aaalgo/aa_swe  (This package)
 
 The following commands will be available after installation:
 
 - `swe_download`: download the github repositories for the SWE-bench testbed.
 - `swe_solve`: solve an instance.
-- `swe_dump`: merge solutions into a jsonl file for evaluation.
+- `swe_submit`: merge solutions into a jsonl file for evaluation.
 - `aa_xxx`: a series of commands for the AI agents.
 
-Note that the `swe_xxx` commands should be made known to the AI agents; but you are totally allowed to use the `aa_xxx` commands.
+Note that the `swe_xxx` commands should NOT be made known to the AI agents.  You are allowed to use all the `swe_xxx` and `aa_xxx` commands.
 
 ## Building Docker Images
 
@@ -68,7 +70,7 @@ You want to replace the tag with your own tag -- something arbitrary that you li
 
 There are two splits: `test` and `dev`.  Some of the images might fail to build; update your SWE-bench repo in a few days and try again.  They are actively fixing issues.
 
-## Setup Environment
+## Environment Variables
 
 Create a root working directory.  Add the following environment to your `~/.bashrc`:
 
@@ -83,10 +85,10 @@ export AA_SWE_DATA_TAG=the_tag_you_used_in_the_docker_build_command
 swe_download
 ```
 
-## Start Solving
+# Solving Problems
 
 ```
-swe_solve ...
+swe_solve -i sympy__sympy-22005
 ```
 
 The following arguments are available:
@@ -99,4 +101,14 @@ The following arguments are available:
 - `-f,--force`: for the solve to run over existing data.
 - `--max_trials`: maximal number of test failures before giving up.
 
+```
+swe_list [--all]
+```
+This will list the current status of the problems.
 
+
+```
+swe_submit
+```
+
+This will merge all solved cases and generate `all_preds_YYYYMMDDHHMMSS.jsonl` for evaluation.
