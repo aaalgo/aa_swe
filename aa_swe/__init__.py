@@ -17,22 +17,29 @@ def parse_range (range, default_window=None):
         return begin, end
     return range[0]-1, range[1]
 
+DEFAULT_MAX_TRIALS = 5
+
 class Context:
     def __init__ (self, state_path):
         self.path = None
         self.lines = []
+        self.trials = 0
+        self.max_trials = DEFAULT_MAX_TRIALS
         self.displayed_lines = None
         self.last_displayed_lines = None
         self.old_selection = None
         self.selection = None
         if os.path.exists(state_path):
             with open(state_path, 'r') as f:
-                state = json.load(f)
-                self.set_path(state['path'])
-                self.last_displayed_lines = state.get('last_displayed_lines', None)
-                self.trials = state.get('trials', 0)
-                self.max_trials = state.get('max_trials', 5)
-                self.old_selection = state.get('selection', None)
+                try:
+                    state = json.load(f)
+                    self.set_path(state['path'])
+                    self.last_displayed_lines = state.get('last_displayed_lines', None)
+                    self.trials = state.get('trials', 0)
+                    self.max_trials = state.get('max_trials', DEFAULT_MAX_TRIALS)
+                    self.old_selection = state.get('selection', None)
+                except Exception as e:
+                    pass
 
     def save (self, state_path):
         with open(state_path, 'w') as f:

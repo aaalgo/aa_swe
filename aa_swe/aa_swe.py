@@ -276,7 +276,8 @@ def solve_main ():
         else:
             sys.stderr.write(f"Failed already exists at {failed_path}, not solving\n")
             return
-    os.system("sudo find . -type d -name '__pycache__' -exec rm -rf {} +")
+    #os.system("sudo find . -type d -name '__pycache__' -exec rm -rf {} +")
+    os.system("find . -type d -name '__pycache__' -exec rm -rf {} +")
     os.system("git reset --hard HEAD")
     os.system("aa_close")
 
