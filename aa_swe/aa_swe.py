@@ -70,6 +70,9 @@ class Env:
         eval_path = os.path.join(self.work_dir, "eval.sh")
         with open(eval_path, "w") as f:
             f.write(self.spec.eval_script)
+        with open(os.path.join(self.work_dir, "test_patch"), "w") as f:
+            f.write(self.instance['test_patch'])
+        os.system(f'cd {self.work_dir}/testbed && git apply ../test_patch && git commit -m test')
         os.system(f"chmod +x {eval_path}")
 
     def apply_groundtruth (self):
@@ -277,8 +280,8 @@ def solve_main ():
             sys.stderr.write(f"Failed already exists at {failed_path}, not solving\n")
             return
     #os.system("sudo find . -type d -name '__pycache__' -exec rm -rf {} +")
-    os.system("find . -type d -name '__pycache__' -exec rm -rf {} +")
-    os.system("git reset --hard HEAD")
+    os.system("find . -type d -name '__pycache__' -exec sudo rm -rf {} +")
+    os.system("git reset --hard HEAD && git apply ../test_patch && git commit -m test")
     os.system("aa_close")
 
     def stop_condition (cost):

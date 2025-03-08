@@ -44,7 +44,8 @@ def docker_run (command, tag):
     #    logging.info(f"Creating new instance {docker_instance}")
     #    subprocess.run(["docker", "run", "-d", "--name", docker_instance, "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", docker_image, "sleep", "infinity"])
     # Run the command inside the Docker container
-    command = ["docker", "run", "--rm", docker_instance] + command
+    fake_git_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "fake_git"))
+    command = ["docker", "run", "--rm", "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", "-v", f"{fake_git_path}:/usr/bin/git", docker_image] + command
     command_str = " ".join(command) + " 2>&1"
     logging.info(f"Running command: {command_str}")
     result = subprocess.run(command_str, shell=True, capture_output=True, text=True)
