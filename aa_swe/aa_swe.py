@@ -8,6 +8,8 @@ import subprocess
 from glob import glob
 from datetime import datetime
 from tqdm import tqdm
+import pkg_resources
+import pandas as pd
 from datasets import load_dataset
 import argparse
 from swebench.harness.test_spec.test_spec import make_test_spec
@@ -26,7 +28,15 @@ ROOT=os.environ.get("AA_SWE_ROOT", None)
 assert not ROOT is None, "Please set the AA_SWE_ROOT environment variable"
 
 class Env:
-    def __init__(self, instance, split):
+    def __init__(self, instance_id):
+        json_path = list(glob(os.path.join(ROOT, "insts", "*", instance_id, "instance.json")))
+        assert len(json_path) == 1, f"Instance {instance_id} not found in any split"
+        self.instance_id = instance_id
+        with open(json_path[0], "r") as f:
+            instance = json.load(f)
+        split = os.path.basename(os.path.dirname(os.path.dirname(json_path[0])))
+        instance['split'] = split
+        assert self.instance_id == instance['instance_id'], f"Instance ID mismatch: {self.instance_id} != {instance['instance_id']}"
         self.spec = make_test_spec(instance)
     #    spec fileds
     #        instance_id: str
@@ -43,11 +53,9 @@ class Env:
     #        namespace: str
     #        base_image_tag: str = LATEST
     #        env_image_tag: str = LATEST
-    #        instance_image_tag: str = LATEST
-        self.split = split
         self.base_commit = instance['base_commit']
         self.instance = instance
-        self.work_dir = os.path.join(ROOT, 'insts', split, self.spec.instance_id)
+        self.instance_dir = os.path.dirname(json_path[0])
         self.repo_dir = os.path.join(ROOT, "repos", self.spec.repo)
 
     def download_repo (self, force=False):
@@ -57,28 +65,25 @@ class Env:
         os.makedirs(self.repo_dir, exist_ok=True)
         os.system(f'git clone --no-checkout --bare https://github.com/{self.spec.repo}.git {self.repo_dir}')
 
-    def reset_work_dir (self, force=False):
-        shutil.rmtree(self.work_dir, ignore_errors=True)
-        #os.makedirs(self.work_dir, exist_ok=True)
-        os.system(f'git clone --no-checkout --depth 1 {self.repo_dir} {self.work_dir}/testbed')
-        os.system(f'cd {self.work_dir}/testbed && git fetch origin {self.base_commit}')
-        os.system(f'cd {self.work_dir}/testbed && git checkout {self.base_commit}')
-        with open(os.path.join(self.work_dir, "instance.json"), "w") as f:
+    def setup_work_dir (self, work_dir):
+        os.makedirs(work_dir, exist_ok=False)
+        os.system(f'git clone --no-checkout --depth 1 {self.repo_dir} {work_dir}/testbed')
+        os.system(f'cd {work_dir}/testbed && git fetch origin {self.base_commit}')
+        os.system(f'cd {work_dir}/testbed && git checkout {self.base_commit}')
+        with open(os.path.join(work_dir, "instance.json"), "w") as f:
             json.dump(self.instance, f)
-        with open(os.path.join(self.work_dir, "problem_statement.txt"), "w") as f:
-            f.write(self.instance['problem_statement'])
-        eval_path = os.path.join(self.work_dir, "eval.sh")
+        eval_path = os.path.join(work_dir, "eval.sh")
         with open(eval_path, "w") as f:
             f.write(self.spec.eval_script)
-        with open(os.path.join(self.work_dir, "test_patch"), "w") as f:
-            f.write(self.instance['test_patch'])
-        os.system(f'cd {self.work_dir}/testbed && git apply ../test_patch && git commit -m test')
         os.system(f"chmod +x {eval_path}")
+        with open(os.path.join(work_dir, "test_patch"), "w") as f:
+            f.write(self.instance['test_patch'])
+        os.system(f'cd {work_dir}/testbed && git apply ../test_patch && git commit -m test')
 
-    def apply_groundtruth (self):
-        with open(os.path.join(self.work_dir, "groundtruth.diff"), "w") as f:
+    def apply_groundtruth (self, work_dir):
+        with open(os.path.join(work_dir, "groundtruth.diff"), "w") as f:
             f.write(self.instance['patch'])
-        os.system(f"cd {self.work_dir}/testbed && git reset --hard HEAD && git apply ../groundtruth.diff")
+        os.system(f"cd {work_dir}/testbed && git reset --hard HEAD && git apply ../groundtruth.diff")
 
     def eval (self, output_path):
         prediction = {
@@ -112,15 +117,18 @@ class Env:
                 for f in failed:
                     print(f"\t{f}")
             sys.exit(1)
-        
 
 def download_main ():
     for split in ['dev', 'test']:
         swebench = load_dataset('princeton-nlp/SWE-bench_Lite', split=split)
         for instance in swebench:
-            env = Env(instance, split=split)
+            instance_id = instance['instance_id']
+            instance_dir = os.path.join(ROOT, "insts", split, instance_id)
+            os.makedirs(instance_dir, exist_ok=True)
+            with open(os.path.join(instance_dir, 'instance.json'), "w") as f:
+                json.dump(instance, f)
+            env = Env(instance_id)
             env.download_repo()
-
 
 def checkout_main ():
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -141,38 +149,37 @@ def checkout_main ():
     assert instance is not None, f"Instance {instance} not found in any split"
 
 def list_main ():
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--split', type=str, default='dev', help='The split to use (e.g., dev or test)')
-    parser.add_argument('--all', action='store_true', help='Show the todo instances')
-    args = parser.parse_args()
+    survey_path = pkg_resources.resource_filename('aa_swe', 'data/survey.csv')
+    survey = pd.read_csv(survey_path, dtype={'instance_id': str, 'solved': int})
+    survey_dict = survey.set_index('instance_id')['solved'].to_dict()
     #FIELDS = ['instance_id', 'repo', 'version', 'install_repo_script', 'eval_script', 'setup_env_script', 'arch', 'base_image_key', 'env_dockerfile']
     seen = set()
     solved = 0
     solved_test = 0
     failed = 0
-    todo = 0
-    for path in glob(os.path.join(ROOT, "insts", "*", "*", "patch")):
-        _, split, instance_id, _ = path.rsplit(os.sep, 3)
+    for path in glob(os.path.join("*", "patch")):
+        parent_dir = os.path.dirname(path)
+        with open(os.path.join(parent_dir, "instance.json"), "r") as f:
+            instance = json.load(f)
+        instance_id = instance['instance_id']
+        split = instance['split']
         print("\033[92mSOLVED\033[0m", split, instance_id)
         seen.add((split, instance_id))
         solved += 1
         if split == 'test':
             solved_test += 1
-    for path in glob(os.path.join(ROOT, "insts", "*", "*", "failed")):
-        _, split, instance_id, _ = path.rsplit(os.sep, 3)
-        with open(path, "r") as f:  
-            failed_reason = f.read().strip()
-        if len(failed_reason) == 0:
-            failed_reason = "failed test"
-        trace = list(glob(instance_id + ".trace.*"))
-        if len(trace) > 0:
-            has_trace = "trace"
-        else:
-            has_trace = ""
-        print("\033[91mFAILED\033[0m", split, instance_id, failed_reason, has_trace)
-        seen.add((split, instance_id))
-        failed += 1
+    for path in glob(os.path.join("*", "failed")):
+        parent_dir = os.path.dirname(path)
+        with open(os.path.join(parent_dir, "instance.json"), "r") as f:
+            instance = json.load(f)
+        instance_id = instance['instance_id']
+        split = instance['split']
+        if not (split, instance_id) in seen:
+            print("\033[91mFAILED\033[0m", split, instance_id)
+            seen.add((split, instance_id))
+            failed += 1
     
+    todo = []
     for path in glob(os.path.join(ROOT, "insts", "*", "*")):
         _, split, instance_id = path.rsplit(os.sep, 2)
         if (split, instance_id) not in seen:
@@ -181,18 +188,12 @@ def list_main ():
                 has_trace = "trace"
             else:
                 has_trace = ""
-            print("\033[93mUNSOLVED\033[0m", split, instance_id, has_trace)
             seen.add((split, instance_id))
-            failed += 1
-    if args.all:
-        for split in ['dev', 'test']:
-            swebench = load_dataset('princeton-nlp/SWE-bench_Lite', split=split)
-            for instance in swebench:
-                instance_id = instance['instance_id']
-                if (split, instance_id) not in seen:
-                    print("TODO", split, instance_id)
-                    todo += 1
-    print(f"Solved: {solved}, Failed: {failed}")
+            todo.append((survey_dict.get(instance_id, 0), split, instance_id))
+    todo.sort(key=lambda x: x[0])
+    for solved, split, instance_id in todo:
+        print("\033[93mUNSOLVED\033[0m", split, instance_id, solved)
+    print(f"Solved: {solved}, Failed: {failed}, Todo: {len(todo)}")
     print(f"Solved test: {solved_test}, {solved_test / 300:.3f}")
 
 def cheat_main ():
@@ -211,7 +212,6 @@ def solve_main ():
     from mailcoach_lite.robots import Shell
     parser = argparse.ArgumentParser(description='Process an mbox file.')
     parser.add_argument('-s', '--solver', default='solver.mbox', help='Path to solver memory.')
-    parser.add_argument('--split', type=str, default=None, help='The split to use (e.g., dev or test)')
     parser.add_argument('-i', '--instance', type=str, required=True, help='The instance ID to process')
     parser.add_argument('-b', '--budget', type=float, default=0.1, help='The budget')
     parser.add_argument('-m', '--model', default='openai/gpt-4o-mini', help='The model to use.')
@@ -222,27 +222,22 @@ def solve_main ():
     if not os.path.exists(args.solver):
         print(f"Solver {args.solver} not found.")
         return
-    split_pattern = args.split if args.split is not None else "*"
-    paths = glob(os.path.join(ROOT, "insts", split_pattern, args.instance))
-    if len(paths) == 0:
-        print(f"No instances found for {args.instance}, checkout...")
-        for split in ['dev', 'test']:
-            swebench = load_dataset('princeton-nlp/SWE-bench_Lite', split=split)
-            instance = next((item for item in swebench if item['instance_id'] == args.instance), None)
-            if not instance is None:
-                env = Env(instance, split=split)
-                env.reset_work_dir()
-                assert os.path.exists(env.work_dir), "Work dir not found"
-                paths = [env.work_dir]
-                break
-        assert len(paths) > 0, f"Instance {args.instance} not found in any split"
-    if len(paths) > 1:
-        print(f"Multiple instances found for {args.instance}, please specify the split")
-        return
+    env = Env(args.instance)
+    patches = list(glob(os.path.join(env.instance_id + '.*', "patch")))
+    failures = list(glob(os.path.join(env.instance_id + '.*', "failed")))
+    if len(patches) + len(failures) > 0:
+        if not args.force:
+            sys.stderr.write(f"Work directories already exist, not solving\n")
+            return
 
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    trace_path = f"{args.instance}.trace.{timestamp}"
-    log_path = f"{args.instance}.log.{timestamp}"
+    suffix = datetime.now().strftime(".%Y%m%d%H%M%S")
+    work_dir = os.path.abspath(env.instance_id + suffix)
+    env.setup_work_dir(work_dir)
+    os.environ["AA_SWE_WORK_DIR"] = work_dir
+    trace_path = f"{work_dir}/trace.mbox"
+    log_path = f"{work_dir}/log.txt"
+    patch_path = f"{work_dir}/patch"
+    failed_path = f"{work_dir}/failed"
     # Set up logging to file
     logging.root.handlers = []
     logging.basicConfig(level=logging.INFO,
@@ -264,28 +259,12 @@ def solve_main ():
     engine.run()
     pm.model = args.model
     swe.model = args.model
-    os.chdir(os.path.join(paths[0], "testbed"))
-    patch_link = os.path.join("..", "patch")
-    failed_path = os.path.join("..", "failed")
-    if os.path.exists(patch_link):
-        if args.force:
-            os.remove(patch_link)
-        else:
-            sys.stderr.write(f"Patch already exists at {patch_link}, not solving\n")
-            return
-    if os.path.exists(failed_path):
-        if args.force:
-            os.remove(failed_path)
-        else:
-            sys.stderr.write(f"Failed already exists at {failed_path}, not solving\n")
-            return
+    os.chdir(os.path.join(work_dir, "testbed"))
     #os.system("sudo find . -type d -name '__pycache__' -exec rm -rf {} +")
-    os.system("find . -type d -name '__pycache__' -exec sudo rm -rf {} +")
-    os.system("git reset --hard HEAD && git apply ../test_patch && git commit -m test")
     os.system("aa_close")
 
     def stop_condition (cost):
-        if os.path.exists(patch_link):
+        if os.path.exists(patch_path):
             logging.info(f"A patch was found; solver seems to have succeeded.")
             return True
         if os.path.exists(failed_path):
@@ -309,7 +288,7 @@ def solve_main ():
     message.set_content(f"We are now in a new codebase checked out from https://github.com/{meta['repo']}.  Solve the issue as we did before.  Start by running aa_ticket to view the problem statement.")
     engine.enqueue(message, ENQUEUE_TASK)
     engine.run(stop_condition=stop_condition, debug=args.debug)
-    if not os.path.exists(patch_link):
+    if not os.path.exists(patch_path):
         logging.info(f"No patch was found; solver has failed.")
         if not os.path.exists(failed_path):
             with open(failed_path, "w") as f:

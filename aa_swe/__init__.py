@@ -5,7 +5,6 @@ import re
 from collections import defaultdict
 from contextlib import contextmanager
 
-STATE_PATH = os.path.expanduser('~/.aa_state')
 
 def parse_range (range, default_window=None):
     range = [int(x.strip()) for x in range.split('-')]
@@ -209,7 +208,7 @@ class Context:
         sys.stdout.write('Use aa_list to display more lines surrounding a hit.\n')
 
 @contextmanager
-def aa_context(state_path=STATE_PATH):
+def aa_context():
     """
     Context manager for managing shared global state.
 
@@ -218,6 +217,9 @@ def aa_context(state_path=STATE_PATH):
             ... modify aa ...
     """
     # Load state if exists, otherwise start with empty dict
+    AA_SWE_WORK_DIR = os.getenv('AA_SWE_WORK_DIR')
+    assert AA_SWE_WORK_DIR is not None, "AA_SWE_WORK_DIR is not set"
+    state_path = os.path.join(AA_SWE_WORK_DIR, 'state.json')
     aa = Context(state_path)
     try:
         yield aa  # Provide the state to the user

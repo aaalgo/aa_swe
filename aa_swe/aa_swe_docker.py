@@ -127,34 +127,31 @@ def print_error_details (traceback_lines, radius_before = 20, radius_after = 2):
 
 
 def test_main (tag=DEFAULT_TAG):
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    output_fname = "stdout." + timestamp
-    stdout_path = os.path.join("..", output_fname)
-    patch_fname = "patch." + timestamp
-    patch_path = os.path.join("..", patch_fname)
-    patch_link = os.path.join("..", "patch")
-    fail_path = os.path.join("..", "failed")
-    if os.path.exists(patch_link):
-        os.remove(patch_link)
+    with aa_context() as aa:
+        output_fname = f"stdout.{aa.trials}"
+        aa.trials += 1
+        stdout_path = os.path.join("..", output_fname)
+        patch_path = os.path.join("..", "patch")
+        fail_path = os.path.join("..", "failed")
 
-    if True:    # run the test
-        command = ["timeout", "300", "/eval.sh"]
-        result = docker_run(command, tag)
-        with open(stdout_path, "w") as f:
-            f.write(result.stdout)
-    
-    error_lines = extract_first_exception(stdout_path)
-    print("timestamp:", timestamp)
-    if len(error_lines) == 0:
-        if os.system(f"cd .. && swe_eval {output_fname} 2> /dev/null") == 0:
-            subprocess.run(f"git diff > {patch_path}", shell=True)
-            os.symlink(patch_fname, patch_link)
-    else:
-        print(''.join(error_lines))
-        with aa_context() as aa:
-            aa.trials += 1
+        if True:    # run the test
+            command = ["timeout", "300", "/eval.sh"]
+            result = docker_run(command, tag)
+            with open(stdout_path, "w") as f:
+                f.write(result.stdout)
+        
+        error_lines = extract_first_exception(stdout_path)
+        success = False
+        if len(error_lines) == 0:
+            if os.system(f"cd .. && swe_eval {output_fname} 2> /dev/null") == 0:
+                success = True
+                subprocess.run(f"git diff > {patch_path}", shell=True)
+        else:
+            print(''.join(error_lines))
+        
+        if not success:
             if aa.trials >= aa.max_trials:
                 with open(fail_path, "w") as f:
                     f.write('failed test')
                     pass
-    
+        

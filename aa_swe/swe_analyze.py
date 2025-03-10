@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
+import os
+import json
 import pkg_resources
 from glob import glob
 import pandas as pd
 
 def scan_trace_and_log (solved):
-    for path in glob("*.trace.20????????????"):
-        instance_id, _ = path.split(".", 1)
+    for path in glob("*/trace.mbox"):
+        parent_path = os.path.dirname(path)
+        with open(os.path.join(parent_path, "instance.json"), "r") as f:
+            instance = json.load(f)
+        instance_id = instance['instance_id']
         with open(path, "r") as f:
-            text = f.readlines()
-        bottom = ''.join(text[-50:])
-        if 'Congratulations!' in bottom:
+            text = f.read()
+        off = text.find("New ticket:")
+        if off < 0:
+            continue
+        if 'Congratulations!' in text[off:]:
             solved.add(instance_id)
             continue
         yield instance_id

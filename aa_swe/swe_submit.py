@@ -15,8 +15,12 @@ def main():
         output_path = sys.argv[1]
     cnt = 0
     with open(output_path, 'w') as f:
-        for path in glob(os.path.join(ROOT, "insts", "test", "*", "patch")):
-            _, split, instance_id, _ = path.rsplit(os.sep, 3)
+        for path in glob(os.path.join("*", "patch")):
+            parent = os.path.dirname(path)
+            instance_path = os.path.join(parent, "instance.json")
+            with open(instance_path, 'r') as f2:
+                instance = json.load(f2)
+            instance_id = instance['instance_id']
             with open(path, 'r') as patch_file:
                 patch = patch_file.read()
             if len(patch.strip()) == 0:

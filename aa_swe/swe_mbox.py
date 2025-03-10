@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext
 import mailbox
 from glob import glob
+import logging
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
@@ -107,6 +108,7 @@ class EmailViewer:
             return
         
         trace_file = self.trace_listbox.get(selected_index[0])
+        logging.info(f"Loading trace file: {trace_file}")
         self.load_emails(trace_file)
     
     def load_emails(self, mbox_file):
@@ -116,15 +118,14 @@ class EmailViewer:
         self.email_listbox.delete(0, tk.END)
         selected_index = None
         for i, message in enumerate(self.emails):
-            subject = message['subject'] or "No Subject"
+            subject = message['Subject'] or "No Subject"
             self.email_listbox.insert(tk.END, f"{i+1}: {subject}")
             
             # Check if the subject starts with "New ticket"
-            if selected_index is None:
-                if subject.lower().startswith("aa_ticket"):
-                    selected_index = i + 2
-                elif subject.lower().startswith("new ticket"):
-                    selected_index = i
+            if subject.lower().startswith("aa_ticket"):
+                selected_index = i + 2
+            elif subject.lower().startswith("new ticket"):
+                selected_index = i
         # Select and display the first email with the subject starting with "New ticket"
         if selected_index is not None:
             self.email_listbox.selection_set(selected_index)
@@ -160,7 +161,7 @@ class EmailViewer:
 
 def main():
     mbox_file = sys.argv[1] if len(sys.argv) == 2 else None
-    
+    logging.basicConfig(level=logging.INFO)
     root = tk.Tk()
     app = EmailViewer(root, mbox_file)
     root.mainloop()

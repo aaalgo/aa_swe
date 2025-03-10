@@ -57,6 +57,9 @@ def select_main ():
         sys.stderr.write('You must provide a range to edit, for example:\n')
         sys.stderr.write('aa_edit 32-48\n')
         return
+    if len(sys.argv) > 2 or ',' in sys.argv[1]:
+        sys.stderr.write('You can only edit a single range each time.\n')
+        return
     begin, end = parse_range(sys.argv[1])
     with aa_context() as aa:
         if aa.path is None:
