@@ -78,11 +78,11 @@ class Env:
         os.system(f"chmod +x {eval_path}")
         with open(os.path.join(work_dir, "test_patch"), "w") as f:
             f.write(self.instance['test_patch'])
+        with open(os.path.join(work_dir, "groundtruth.diff"), "w") as f:
+            f.write(self.instance['patch'])
         os.system(f'cd {work_dir}/testbed && git apply ../test_patch && git commit -a -m test')
 
     def apply_groundtruth (self, work_dir):
-        with open(os.path.join(work_dir, "groundtruth.diff"), "w") as f:
-            f.write(self.instance['patch'])
         os.system(f"cd {work_dir}/testbed && git reset --hard HEAD && git apply ../groundtruth.diff")
 
     def eval (self, output_path):

@@ -10,7 +10,7 @@ def main():
     with aa_context() as aa:
         last = aa.last_displayed_lines
         if last is None:
-            sys.stdout.write('Cannot scroll.  Use aa_search or aa_view to display something first.\n')
+            sys.stdout.write('Cannot scroll.  Use aa_search or aa_list to display something first.\n')
             return
         if direction == 'down':
             begin = max(last) - 3
