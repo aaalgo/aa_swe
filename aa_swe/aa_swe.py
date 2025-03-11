@@ -78,7 +78,7 @@ class Env:
         os.system(f"chmod +x {eval_path}")
         with open(os.path.join(work_dir, "test_patch"), "w") as f:
             f.write(self.instance['test_patch'])
-        os.system(f'cd {work_dir}/testbed && git apply ../test_patch && git commit -m test')
+        os.system(f'cd {work_dir}/testbed && git apply ../test_patch && git commit -a -m test')
 
     def apply_groundtruth (self, work_dir):
         with open(os.path.join(work_dir, "groundtruth.diff"), "w") as f:
@@ -156,7 +156,7 @@ def list_main ():
     seen = set()
     solved = 0
     solved_test = 0
-    failed = 0
+    failed = []
     for path in glob(os.path.join("*", "patch")):
         parent_dir = os.path.dirname(path)
         with open(os.path.join(parent_dir, "instance.json"), "r") as f:
@@ -164,10 +164,11 @@ def list_main ():
         instance_id = instance['instance_id']
         split = instance['split']
         print("\033[92mSOLVED\033[0m", split, instance_id)
-        seen.add((split, instance_id))
-        solved += 1
-        if split == 'test':
-            solved_test += 1
+        if not (split, instance_id) in seen:
+            seen.add((split, instance_id))
+            solved += 1
+            if split == 'test':
+                solved_test += 1
     for path in glob(os.path.join("*", "failed")):
         parent_dir = os.path.dirname(path)
         with open(os.path.join(parent_dir, "instance.json"), "r") as f:
@@ -175,9 +176,12 @@ def list_main ():
         instance_id = instance['instance_id']
         split = instance['split']
         if not (split, instance_id) in seen:
-            print("\033[91mFAILED\033[0m", split, instance_id)
             seen.add((split, instance_id))
-            failed += 1
+            failed.append((survey_dict.get(instance_id, 0), split, instance_id))
+    
+    failed.sort(key=lambda x: x[0])
+    for score, split, instance_id in failed:
+        print("\033[91mFAILED\033[0m", split, instance_id, score)
     
     todo = []
     for path in glob(os.path.join(ROOT, "insts", "*", "*")):
@@ -191,9 +195,9 @@ def list_main ():
             seen.add((split, instance_id))
             todo.append((survey_dict.get(instance_id, 0), split, instance_id))
     todo.sort(key=lambda x: x[0])
-    for solved, split, instance_id in todo:
-        print("\033[93mUNSOLVED\033[0m", split, instance_id, solved)
-    print(f"Solved: {solved}, Failed: {failed}, Todo: {len(todo)}")
+    for score, split, instance_id in todo:
+        print("\033[93mUNSOLVED\033[0m", split, instance_id, score)
+    print(f"Solved: {solved}, Failed: {len(failed)}, Todo: {len(todo)}")
     print(f"Solved test: {solved_test}, {solved_test / 300:.3f}")
 
 def cheat_main ():
@@ -203,10 +207,13 @@ def cheat_main ():
     _, split, instance_id = parts
     with open("instance.json", "r") as f:
         instance = json.load(f)
-    env = Env(instance, split)
-    env.apply_groundtruth()
+    env = Env(instance['instance_id'])
+    env.apply_groundtruth('.')
 
 def solve_main ():
+    if os.path.exists("quit"):
+        print("Found quit file, not solving")
+        return
     from glob import glob
     from mailcoach_lite import Engine, EmailMessage, Agent, ENQUEUE_MEMORY, ENQUEUE_TASK, DEFAULT_MODEL
     from mailcoach_lite.robots import Shell

@@ -5,11 +5,12 @@ import re
 from datetime import datetime
 import subprocess
 import logging
+import argparse
 from . import *
 
 DEFAULT_TAG=os.environ.get("AA_SWE_TAG", "aa")
 
-def docker_run (command, tag):
+def docker_run (command, tag, interactive=False):
     if os.getenv('SWE_DEBUG'):
         logging.basicConfig(level=logging.DEBUG)
     # swe_run ...
@@ -45,11 +46,19 @@ def docker_run (command, tag):
     #    subprocess.run(["docker", "run", "-d", "--name", docker_instance, "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", docker_image, "sleep", "infinity"])
     # Run the command inside the Docker container
     fake_git_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "fake_git"))
-    command = ["docker", "run", "--rm", "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", "-v", f"{fake_git_path}:/usr/bin/git", docker_image] + command
-    command_str = " ".join(command) + " 2>&1"
-    logging.info(f"Running command: {command_str}")
-    result = subprocess.run(command_str, shell=True, capture_output=True, text=True)
-    return result
+    command0 = command
+    command = ["docker", "run", "--rm", "-v", f"{cwd}:/testbed", "-v", f"{eval_sh}:/eval.sh", "-v", f"{fake_git_path}:/usr/bin/git"]
+    if interactive:
+        command.append("-it")
+    command.append(docker_image)
+    command.extend(command0)
+    if interactive:
+        result = subprocess.run(command)
+    else:
+        command_str = " ".join(command) + " 2>&1"
+        logging.info(f"Running command: {command_str}")
+        result = subprocess.run(command_str, shell=True, capture_output=True, text=True)
+        return result
 
 def run_main(tag="aa"):
     command = sys.argv[1:]
@@ -127,6 +136,14 @@ def print_error_details (traceback_lines, radius_before = 20, radius_after = 2):
 
 
 def test_main (tag=DEFAULT_TAG):
+    parser = argparse.ArgumentParser(description='Run tests with optional interactive mode.')
+    parser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode')
+    args = parser.parse_args()
+
+    if args.interactive:
+        docker_run(["/bin/bash"], tag, interactive=True)
+        return
+
     with aa_context() as aa:
         output_fname = f"stdout.{aa.trials}"
         aa.trials += 1

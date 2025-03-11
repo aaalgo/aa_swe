@@ -35,6 +35,7 @@ setup(
             'swe_cheat=aa_swe.aa_swe:cheat_main',
             'swe_mbox=aa_swe.swe_mbox:main',
             'swe_stat=aa_swe.swe_stat:main',
+            'swe_poll=aa_swe.swe_poll:main',
         ],
     },
     include_package_data=True,
