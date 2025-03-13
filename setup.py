@@ -36,6 +36,7 @@ setup(
             'swe_mbox=aa_swe.swe_mbox:main',
             'swe_stat=aa_swe.swe_stat:main',
             'swe_poll=aa_swe.swe_poll:main',
+            'swe_poll2=aa_swe.swe_poll2:main',
         ],
     },
     include_package_data=True,

@@ -7,6 +7,7 @@ import json
 import subprocess
 from glob import glob
 from datetime import datetime
+from collections import Counter
 from tqdm import tqdm
 import pkg_resources
 import pandas as pd
@@ -157,6 +158,8 @@ def list_main ():
     solved = 0
     solved_test = 0
     failed = []
+    with open('/data/aa/experiments/evaluation/lite/20250114_Isoform/results/results.json', 'r') as f:
+        isoform = Counter(json.load(f)['resolved'])
     for path in glob(os.path.join("*", "patch")):
         parent_dir = os.path.dirname(path)
         with open(os.path.join(parent_dir, "instance.json"), "r") as f:
@@ -177,11 +180,11 @@ def list_main ():
         split = instance['split']
         if not (split, instance_id) in seen:
             seen.add((split, instance_id))
-            failed.append((survey_dict.get(instance_id, 0), split, instance_id))
+            failed.append((isoform[instance_id], survey_dict.get(instance_id, 0), split, instance_id))
     
     failed.sort(key=lambda x: x[0])
-    for score, split, instance_id in failed:
-        print("\033[91mFAILED\033[0m", split, instance_id, score)
+    for iso, score, split, instance_id in failed:
+        print("\033[91mFAILED\033[0m", split, instance_id, iso, score)
     
     todo = []
     for path in glob(os.path.join(ROOT, "insts", "*", "*")):
@@ -193,10 +196,10 @@ def list_main ():
             else:
                 has_trace = ""
             seen.add((split, instance_id))
-            todo.append((survey_dict.get(instance_id, 0), split, instance_id))
+            todo.append((isoform[instance_id], survey_dict.get(instance_id, 0), split, instance_id))
     todo.sort(key=lambda x: x[0])
-    for score, split, instance_id in todo:
-        print("\033[93mUNSOLVED\033[0m", split, instance_id, score)
+    for iso, score, split, instance_id in todo:
+        print("\033[93mUNSOLVED\033[0m", split, instance_id, iso, score)
     print(f"Solved: {solved}, Failed: {len(failed)}, Todo: {len(todo)}")
     print(f"Solved test: {solved_test}, {solved_test / 300:.3f}")
 
@@ -215,12 +218,12 @@ def solve_main ():
         print("Found quit file, not solving")
         return
     from glob import glob
-    from mailcoach_lite import Engine, EmailMessage, Agent, ENQUEUE_MEMORY, ENQUEUE_TASK, DEFAULT_MODEL
-    from mailcoach_lite.robots import Shell
+    from mailcoach import Engine, EmailMessage, Agent, ENQUEUE_MEMORY, ENQUEUE_TASK, DEFAULT_MODEL
+    from mailcoach.robots import Shell
     parser = argparse.ArgumentParser(description='Process an mbox file.')
     parser.add_argument('-s', '--solver', default='solver.mbox', help='Path to solver memory.')
     parser.add_argument('-i', '--instance', type=str, required=True, help='The instance ID to process')
-    parser.add_argument('-b', '--budget', type=float, default=0.1, help='The budget')
+    parser.add_argument('-b', '--budget', type=float, default=0.05, help='The budget')
     parser.add_argument('-m', '--model', default='openai/gpt-4o-mini', help='The model to use.')
     parser.add_argument('-d', '--debug', action='store_true', help='Debug mode')
     parser.add_argument('-f', '--force', action='store_true', help='Force the operation to run even if conditions are not met')

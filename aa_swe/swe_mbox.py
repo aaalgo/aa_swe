@@ -113,24 +113,19 @@ class EmailViewer:
     
     def load_emails(self, mbox_file):
         self.mbox = mailbox.mbox(mbox_file)
-        self.emails = list(self.mbox)
-        
+        self.emails = []
         self.email_listbox.delete(0, tk.END)
-        selected_index = None
-        for i, message in enumerate(self.emails):
+        msgs = list(self.mbox)
+        last_aa_ticket_index = -1
+        for i, message in enumerate(msgs):
             subject = message['Subject'] or "No Subject"
+            if subject.lower().startswith("new ticket:"):
+                last_aa_ticket_index = i
+        last_aa_ticket_index = max(last_aa_ticket_index, 0)
+        for i, message in enumerate(msgs[last_aa_ticket_index:]):
+            subject = message['Subject'] or "No Subject"
+            self.emails.append(message)
             self.email_listbox.insert(tk.END, f"{i+1}: {subject}")
-            
-            # Check if the subject starts with "New ticket"
-            if subject.lower().startswith("aa_ticket"):
-                selected_index = i + 2
-            elif subject.lower().startswith("new ticket"):
-                selected_index = i
-        # Select and display the first email with the subject starting with "New ticket"
-        if selected_index is not None:
-            self.email_listbox.selection_set(selected_index)
-            self.email_listbox.see(selected_index)
-            self.display_email_content(None)  # Call the method to display the email content
         
     def display_email_content(self, event):
         selected_index = self.email_listbox.curselection()
