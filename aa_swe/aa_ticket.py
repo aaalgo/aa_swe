@@ -3,12 +3,11 @@ import os
 import sys
 import json
 
-
 def main():
-    if not os.path.exists("../instance.json"):
+    if not os.path.exists("/meta/instance.json"):
         sys.stderr.write("This is not a testbed directory.\n")
         sys.exit(1)
-    with open(os.path.join("../instance.json"), "r") as f:
+    with open("/meta/instance.json", "r") as f:
         instance = json.load(f)
     print(instance["problem_statement"])
 

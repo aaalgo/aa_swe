@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 import sys
-from . import *
+from aa_swe.aa import aa_context, get_arg_range
 
 def main():
-    range_ = "1"
-    if len(sys.argv) > 1:
-        range_ = sys.argv[1]
-
-    begin, end = parse_range(range_, 20)
+    begin, end = get_arg_range()
 
     with aa_context() as aa:
+        end = min(end, len(aa.lines))
         sys.stdout.write('\n')
-        aa.view(begin, end)
+        aa.display_lines(list(range(begin, end)), max_lines=None)
+        sys.stdout.write('\n')
+
 
 if __name__ == "__main__":
     main()

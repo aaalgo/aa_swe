@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-from . import aa_context
-import argparse
+from aa_swe.aa import aa_context
 
 def main():
     with aa_context() as aa:

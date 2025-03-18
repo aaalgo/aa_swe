@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 import os
 import sys
-from . import aa_context
-import argparse
+from aa_swe.aa import aa_context, get_arg_merged
 
 def main():
-    parser = argparse.ArgumentParser(description='Open a file and manage its state.')
-    parser.add_argument('path', type=str, help='The path to the file to open')
-    args = parser.parse_args()
+    path = get_arg_merged('path')
 
     with aa_context() as aa:
-        if not os.path.isfile(args.path):
-            sys.stderr.write(f"Error: {args.path} is not a valid file or does not exist.\n")
-            return
-        aa.set_path(args.path)
+        if not os.path.isfile(path):
+            sys.stderr.write(f"Error: {path} is not a valid file or does not exist.\n")
+            return 1
+        aa.set_path(path)
         aa.summary()
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys
-from . import *
+from aa_swe.aa import aa_context
 
 def main():
     direction = 'down'
@@ -11,13 +11,15 @@ def main():
         last = aa.last_displayed_lines
         if last is None:
             sys.stdout.write('Cannot scroll.  Use aa_search or aa_list to display something first.\n')
-            return
+            return 1
         if direction == 'down':
             begin = max(last) - 3
         else:
             begin = min(last) - 16
         end = begin + 20
-        aa.view(max(0, begin), min(len(aa.lines), end))
+        begin = max(0, begin)
+        end = min(len(aa.lines), end)
+        aa.display_lines(list(range(begin, end)), max_lines=None)
 
 if __name__ == "__main__":
     main()

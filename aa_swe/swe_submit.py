@@ -6,9 +6,6 @@ from glob import glob
 import json
 import yaml
 
-ROOT=os.environ.get("AA_SWE_ROOT", None)
-assert not ROOT is None, "Please set the AA_SWE_ROOT environment variable"
-
 def main():
     output_path = 'all_preds.jsonl'
     if len(sys.argv) > 1:
