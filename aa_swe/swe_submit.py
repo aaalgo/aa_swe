@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import sys
 import os
-from datetime import datetime
 from glob import glob
 import json
-import yaml
 
 def main():
     output_path = 'all_preds.jsonl'

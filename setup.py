@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='aa_swe',
-    version='0.1',
+    version='0.2',
     packages=find_packages(),
     scripts=['aa_swe/aa_open.py'],
     package_data={

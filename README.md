@@ -9,6 +9,13 @@ Solving the [SWE-bench](https://www.swebench.com/) with [Mailcoach](https://gith
 **You'll need a solver (the agents' memory) to run this package.  The solver is currently
 not open to the general public.  Please contact the authors for collaboration.**
 
+# Updates
+
+* 2025-03-17 version 0.2
+    - AA-SWE docker images to speedup running.
+    - Moved `aa_xxx` tools inside docker.
+    - Please update mailcoach.
+
 # Overview of Data Layout
 
 All data will be contained in a root working directory selected by the user.  The root working directory is specified by the environment variable `AA_SWE_ROOT`.
@@ -58,25 +65,12 @@ The following commands will be available after installation:
 
 Note that the `swe_xxx` commands should NOT be made known to the AI agents.  You are allowed to use all the `swe_xxx` and `aa_xxx` commands.
 
-## Building Docker Images
-
-SWE-bench requires building a series of docker images for evaluation.
-
-```
-python3 -m swebench.harness.prepare_images --dataset_name princeton-nlp/SWE-bench_Lite --split test --tag REPLACE_ME --max_workers 16
-```
-
-You want to replace the tag with your own tag -- something arbitrary that you like.
-
-There are two splits: `test` and `dev`.  Some of the images might fail to build; update your SWE-bench repo in a few days and try again.  They are actively fixing issues.
-
 ## Environment Variables
 
 Create a root working directory.  Add the following environment to your `~/.bashrc`:
 
 ```
 export AA_SWE_ROOT=/path/to/your/root/working/directory
-export AA_SWE_DATA_TAG=the_tag_you_used_in_the_docker_build_command
 ```
 
 ## Download the Github Repositories
@@ -84,6 +78,37 @@ export AA_SWE_DATA_TAG=the_tag_you_used_in_the_docker_build_command
 ```
 swe_download
 ```
+## Building Docker Images
+
+### SWE-Bench Docker Images
+
+SWE-bench requires building a series of docker images for evaluation.
+
+```
+python3 -m swebench.harness.prepare_images --dataset_name princeton-nlp/SWE-bench_Lite --split test --tag aa --max_workers 16
+```
+
+Note that tag must be aa.
+
+
+There are two splits: `test` and `dev`.  Some of the images might fail to build; update your SWE-bench repo in a few days and try again.  They are actively fixing issues.
+
+### AA-SWE Docker Images
+
+To accelerate development, an AA-SWE docker image is built on top of the
+SWE-Bench docker image.  For example, on top of `sweb.eval.x86_te.XXX:aa`,
+`aa_swe.XXX` is built.
+
+After the SWE-bench image is built, use the following to build the
+AA-SWE image:
+
+```
+swe_build_docker -i [insatnce_id]
+```
+
+If the image is not built, it will be automatically built upon
+`swe_solve`.
+
 
 # Solving Problems
 
@@ -111,4 +136,5 @@ This will list the current status of the problems.
 swe_submit
 ```
 
-This will merge all solved cases and generate `all_preds_YYYYMMDDHHMMSS.jsonl` for evaluation.
+This will merge all solved cases and generate `all_preds.jsonl` for evaluation.
+
