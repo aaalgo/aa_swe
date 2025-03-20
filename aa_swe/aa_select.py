@@ -7,6 +7,9 @@ def main ():
         if aa.path is None:
             sys.stderr.write('You must open a file before editing it.\n')
             return
+        if 'test' in self.path:
+            sys.stderr.write('You should not attempt to modify the test cases.')
+            return
         sys.stdout.write('--- begin of selection ---\n')
         for i in range(begin, end):
             sys.stdout.write(aa.lines[i])

@@ -3,7 +3,7 @@ import os, sys
 from aa_swe.aa import aa_context, get_arg_merged
 
 def main():
-    path = get_arg_merge('path')
+    path = get_arg_merged('path')
 
     with aa_context() as aa:
         if os.path.exists(path):

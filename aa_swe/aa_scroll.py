@@ -8,7 +8,7 @@ def main():
         direction = sys.argv[1]
 
     with aa_context() as aa:
-        last = aa.last_displayed_lines
+        last = aa.old_displayed_lines
         if last is None:
             sys.stdout.write('Cannot scroll.  Use aa_search or aa_list to display something first.\n')
             return 1

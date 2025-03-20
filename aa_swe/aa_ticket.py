@@ -4,6 +4,10 @@ import sys
 import json
 
 def main():
+    if os.path.exists("./_aa_ticket"):
+        os.system("cat ./_aa_ticket")
+        return
+    
     if not os.path.exists("/meta/instance.json"):
         sys.stderr.write("This is not a testbed directory.\n")
         sys.exit(1)
